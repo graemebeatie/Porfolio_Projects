@@ -1,0 +1,34 @@
+/*select * from departmnets */
+> db.departments.find({})
+{ "_id" : ObjectId("5da3ee0a4943bd05b44df8b6"), "dept_no" : "d1", "dept_name" : "Research", "location" : "Ogden" }
+{ "_id" : ObjectId("5da3ef044943bd05b44df8b7"), "dept_no" : "d2", "dept_name" : "Sales", "location" : "South Ogden" }
+{ "_id" : ObjectId("5da3ef044943bd05b44df8b8"), "dept_no" : "d3", "dept_name" : "Development", "location" : "Ogden" }
+
+
+/*select * from departmnets where dept_no ='d1' */
+> db.departments.find({"dept_no":"d1"})
+{ "_id" : ObjectId("5da3ee0a4943bd05b44df8b6"), "dept_no" : "d1", "dept_name" : "Research", "location" : "Ogden" }
+
+/* select * from departments where dept_name = 'Research' */
+> db.departments.find({"dept_name":"Research"})
+{ "_id" : ObjectId("5da3ee0a4943bd05b44df8b6"), "dept_no" : "d1", "dept_name" : "Research", "location" : "Ogden" }
+
+
+/* select * from departments where dept_name = 'Ogden' */
+> db.departments.find({"location":"Ogden"})
+{ "_id" : ObjectId("5da3ee0a4943bd05b44df8b6"), "dept_no" : "d1", "dept_name" : "Research", "location" : "Ogden" }
+{ "_id" : ObjectId("5da3ef044943bd05b44df8b8"), "dept_no" : "d3", "dept_name" : "Development", "location" : "Ogden" }
+
+/* select * from departments where dept_name in ('Research','Sales') 
+> db.departments.find({"dept_name": {$in:["Research","Sales"]}})
+{ "_id" : ObjectId("5da3ee0a4943bd05b44df8b6"), "dept_no" : "d1", "dept_name" : "Research", "location" : "Ogden" }
+{ "_id" : ObjectId("5da3ef044943bd05b44df8b7"), "dept_no" : "d2", "dept_name" : "Sales", "location" : "South Ogden" }
+
+
+/* select * from departments where location = 'Ogden' and dept_name = 'Research'  */
+> db.departments.find({"location":"Ogden", "dept_name": "Research"})
+{ "_id" : ObjectId("5da3ee0a4943bd05b44df8b6"), "dept_no" : "d1", "dept_name" : "Research", "location" : "Ogden" }
+
+
+
+

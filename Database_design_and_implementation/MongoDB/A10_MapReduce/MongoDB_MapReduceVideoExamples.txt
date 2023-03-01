@@ -1,0 +1,172 @@
+https://docs.mongodb.com/manual/tutorial/map-reduce-examples/
+
+
+> db.orders.insertOne({      _id: ObjectId("50a8240b927d5d8b5891743c"),      cust_id: "abc123",      ord_date: new Date("Oct 04, 2012"),      status: 'A',      price: 25,      items: [ { sku: "mmm", qty: 5, price: 2.5 },               { sku: "nnn", qty: 5, price: 2.5 } ] })
+
+> db.orders.insertOne({      _id: ObjectId("51a8240b927d5d8b5891743d"),      cust_id: "abc123",      ord_date: new Date("Oct 09, 2012"),      status: 'A',      price: 30,      items: [ { sku: "mmm", qty: 6, price: 2.5 },               { sku: "nnn", qty: 6, price: 2.5 } ] })
+
+> db.orders.insertOne({      _id: ObjectId("50a8340b927d5d8b5891743e"),      cust_id: "def",      ord_date: new Date("Oct 05, 2012"),      status: 'A',      price: 149,      items: [ { sku: "mmm", qty: 10, price: 10 },               { sku: "nnn", qty: 7, price: 7 } ] })
+
+
+> db.orders.find()
+{ "_id" : ObjectId("50a8240b927d5d8b5891743c"), "cust_id" : "abc123", "ord_date" : ISODate("2012-10-04T06:00:00Z"), "status" : "A", "price" : 25, "items" : [ { "sku" : "mmm", "qty" : 5, "price" : 2.5 }, { "sku" : "nnn", "qty" : 5, "price" : 2.5 } ] }
+{ "_id" : ObjectId("51a8240b927d5d8b5891743d"), "cust_id" : "abc123", "ord_date" : ISODate("2012-10-09T06:00:00Z"), "status" : "A", "price" : 30, "items" : [ { "sku" : "mmm", "qty" : 6, "price" : 2.5 }, { "sku" : "nnn", "qty" : 6, "price" : 2.5 } ] }
+{ "_id" : ObjectId("50a8340b927d5d8b5891743e"), "cust_id" : "def", "ord_date" : ISODate("2012-10-05T06:00:00Z"), "status" : "A", "price" : 149, "items" : [ { "sku" : "mmm", "qty" : 10, "price" : 10 }, { "sku" : "nnn", "qty" : 7, "price" : 7 } ] }
+>
+
+
+Return the Total Price Per Customer
+
+(1) Define map function
+define the group by key - cust_id
+define the projection fields. price
+use emit. 
+
+
+
+
+
+
+var mapFunction1 = function() {
+                       emit(this.cust_id, this.price);
+                   };
+
+[{abc123, [25,30]}, {def, [149]}]
+
+(2) Define reduce function
+
+var reduceFunction1 = function(keyCustId, valuesPrices) {
+                          return Array.sum(valuesPrices);
+                      };
+
+[{abc123, 55}, {def, 149}]
+
+
+(3) Use map and reduce function to achieve mapReduce
+> db.orders.mapReduce(
+                      mapFunction1,
+                      reduceFunction1,
+                      { out: "map_reduce_example" }
+                    )
+
+{
+        "result" : "map_reduce_example",
+        "timeMillis" : 128,
+        "counts" : {
+                "input" : 3,
+                "emit" : 3,
+                "reduce" : 1,
+                "output" : 2
+        },
+        "ok" : 1
+}
+(4) query output to find out final values. 
+
+> db.map_reduce_example.find()
+{ "_id" : "abc123", "value" : 55 }
+{ "_id" : "def", "value" : 149 }
+>
+
+
+
+Calculate Order and Total Quantity with Average Quantity Per Item
+
+
+
+> db.orders.find({})
+{ "_id" : ObjectId("50a8240b927d5d8b5891743c"), "cust_id" : "abc123", "ord_date" : ISODate("2012-10-04T06:00:00Z"), "status" : "A", "price" : 25, "items" : [ { "sku" : "mmm", "qty" : 5, "price" : 2.5 }, { "sku" : "nnn", "qty" : 5, "price" : 2.5 } ] }
+{ "_id" : ObjectId("51a8240b927d5d8b5891743d"), "cust_id" : "abc123", "ord_date" : ISODate("2012-10-09T06:00:00Z"), "status" : "A", "price" : 30, "items" : [ { "sku" : "mmm", "qty" : 6, "price" : 2.5 }, { "sku" : "nnn", "qty" : 6, "price" : 2.5 } ] }
+{ "_id" : ObjectId("50a8340b927d5d8b5891743e"), "cust_id" : "def", "ord_date" : ISODate("2012-10-05T06:00:00Z"), "status" : "A", "price" : 149, "items" : [ { "sku" : "mmm", "qty" : 10, "price" : 10 }, { "sku" : "nnn", "qty" : 7, "price" : 7 } ] }
+>
+
+Total Quantity : mmm: [5,10,6] => 21
+Average quantity : mmm : 21/3 => 7
+
+(1) Define map function.
+
+//[ { "sku" : "mmm", "qty" : 5, "price" : 2.5 }, { "sku" : "nnn", "qty" : 5, "price" : 2.5 } ]
+var mapFunction2 = function() {
+
+                       for (var idx = 0; idx < this.items.length; idx++) {
+			
+                           var key = this.items[idx].sku;
+                           var value = {
+                                         count: 1,
+                                         qty: this.items[idx].qty
+                                       };
+                           emit(key, value);
+                       }
+                    };
+
+
+{mmm:{1, 5}}, {nnn:{1, 5} }, {mmm: {1,6}}, {nnn: {1,6}}, {mmm: {1,10}, nnn: {1,7}}
+
+
+
+(2) Define reduce function.
+
+var reduceFunction2 = function(keySKU, countObjVals) {
+                     reducedVal = { count: 0, qty: 0 };
+
+                     for (var idx = 0; idx < countObjVals.length; idx++) {
+                         reducedVal.count += countObjVals[idx].count;
+                         reducedVal.qty += countObjVals[idx].qty;
+                     }
+
+                     return reducedVal;
+                  };
+
+
+
+mmm: {count:3, qty:21}
+nnn: {count:x, qty:y}
+
+> db.orders.mapReduce(mapFunction2, reduceFunction2, {out: "xyz"})
+{
+        "result" : "xyz",
+        "timeMillis" : 82,
+        "counts" : {
+                "input" : 3,
+                "emit" : 6,
+                "reduce" : 2,
+                "output" : 2
+        },
+        "ok" : 1
+}
+> db.xyz.find({})
+{ "_id" : "mmm", "value" : { "count" : 3, "qty" : 21 } }
+{ "_id" : "nnn", "value" : { "count" : 3, "qty" : 18 } }
+>
+
+
+(3) Define finalize function
+
+var finalizeFunction2 = function (key, reducedVal) {
+
+                       reducedVal.avg = reducedVal.qty/reducedVal.count;
+
+                       return reducedVal;
+
+                    };
+
+(4) call map reduce. Note the use of query in the map reduce. 
+
+db.orders.mapReduce( mapFunction2,
+                     reduceFunction2,
+                     {
+                       out: { merge: "map_reduce_example2" },
+                       query: { ord_date:
+                                  { $lt: new Date('10/07/2012') }
+                              },
+                       finalize: finalizeFunction2
+                     }
+                   )
+
+
+
+> db.map_reduce_example2.find({})
+{ "_id" : "abc123", "value" : 55 }
+{ "_id" : "mmm", "value" : { "count" : 2, "qty" : 11, "avg" : 5.5 } }
+{ "_id" : "nnn", "value" : { "count" : 2, "qty" : 11, "avg" : 5.5 } }
+>
+

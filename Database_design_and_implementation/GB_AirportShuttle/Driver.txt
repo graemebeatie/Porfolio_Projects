@@ -1,0 +1,5 @@
+|Rachael|Carter|123 Fake Street||Ogden|UT|USA|84405|5500
+|Mitchell|Masher|19 W 1900 S|Suite 1|Clearfield|UT|USA|84415|5510
+|Chris|Broad|23 Sendai St||Columbus|OH|USA|00001|5520
+|Braeme|Greatie|780 28th St||Ogden|UT|USA|84404|5530
+|Charla|Maro|68 Acorn St||Bountiful|UT|USA|84116|5540

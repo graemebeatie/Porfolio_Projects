@@ -1,0 +1,35 @@
+db.departments.insert({"dept_no":"d1","dept_name":"Research","location":"Ogden"})
+db.departments.insertMany([{"dept_no":"d2","dept_name":"Sales","location":"South Ogden"},{"dept_no":"d3","dept_name":"Development","location":"Ogden"}])
+
+
+db.employees.insertMany([  
+  {    "emp_no": 12345,
+    "first_name": "Richard",
+    "last_name": "Fry",
+    "department": {
+      "dept_no": "d1",
+      "dept_name": "Research",
+      "location": "Ogden"
+    }
+  },
+  {
+    "emp_no": 12346,
+    "first_name": "James",
+    "last_name": "Jones",
+    "department": {
+      "dept_no": "d1",
+      "dept_name": "Research",
+      "location": "Ogden"
+    }
+  },
+  {
+    "emp_no": 12347,
+    "first_name": "Jane",
+    "last_name": "Johnson",
+    "department": {
+      "dept_no": "d2",
+      "dept_name": "Sales",
+      "location": "South Ogden"
+    }
+  }
+])

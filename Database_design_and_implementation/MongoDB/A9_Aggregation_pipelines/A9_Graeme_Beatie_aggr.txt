@@ -1,0 +1,43 @@
+-- 1. Find the number of employees that are associated with orders shipped to France or Brazil
+db.orders.aggregate([{$match: {$or: [{ShipCountry: 'France'}, {ShipCountry: 'Brazil'}]}}, 
+{$group: {_id: '$Employee.EmployeeID'}}, {$count: 'TotalEmployees'}])
+
+-- 2. Find the company name and customer id of all the customers who ordered products with the name 
+--"Manjimup Dried Apples" or "Chang" ordered by the company name in ascending order
+
+db.orders.aggregate(
+[{'$match': {'$or': [{'products.ProductName': 'Manjimup Dried Apples'}, 
+{'products.ProductName': 'Chang'}]}}, 
+{'$project': {'customer.CompanyName': 1,'customer.CustomerID': 1, '_id': 0}}, 
+{'$sort': {'customer.CompanyName': 1}}]
+)
+
+--TODO:: this currently returns duplicates of customers so I need to group them at some point
+-- 3. Find the shipping country and the number of customers per each shipping country
+db.orders.aggregate([{'$group': {'_id': {'Company': '$customer.CompanyName', 'ShipCountry': '$ShipCountry'}, 'count': {'$sum': 1}}},
+ {'$group': {'_id': {'Country': '$_id.ShipCountry'}, 'Number of customers': {'$sum': 1}}}])
+
+-- Dr. Fry's version
+db.orders.aggregate([{$group:{_id:{CustomerID:'$customer.CustomerID',
+ShipCountry:'$ShipCountry'}}},
+{$group:{_id:{ShipCountry:'$_id.ShipCountry'}, 'Number of
+customers':{$sum:1}}}]
+
+-- 4.Find all the orders for which the total order amount is greater than 500. 
+-- Just look into unit price and quantity to calculate the total order amount. Don't worry about the discount.
+db.orders.aggregate([{$project: {'Total Purchase': {$sum: {$map: {input: '$products', 
+'in': {$multiply: ['$$this.UnitPrice','$$this.Quantity']}}}}, _id: 0, 'customer.CompanyName': 1}}, 
+{$match: {'Total Purchase': {$gt: 500 }}}])
+
+-- 5. For the orders shipped by "Federal Shipping", 
+-- change the phone number of shipper "Federal Shipping" to "111-111-1111". 
+db.orders.update( {"Shipper.CompanyName": "Federal Shipping"}, 
+{$set: {"Shipper.Phone": "111-111-1111"}}, {multi:true})
+
+-- show the phone number change
+db.orders.find("Shipper.CompanyName": "Federal Shipping")
+
+-- 6.  For the orders shipped by "Federal Shipping", add a new field called "ContactName" 
+-- with the value "John Doe".
+
+db.orders.aggregate([{$match: {'Shipper.CompanyName': 'Federal Shipping'}}, {$addFields: {ContactName: 'John Doe'}}])

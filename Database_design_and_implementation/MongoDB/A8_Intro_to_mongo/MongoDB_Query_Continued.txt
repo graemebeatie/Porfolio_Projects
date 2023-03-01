@@ -1,0 +1,215 @@
+/*select * from departmnets */
+> db.departments.find({})
+{ "_id" : ObjectId("5da3ee0a4943bd05b44df8b6"), "dept_no" : "d1", "dept_name" : "Research", "location" : "Ogden" }
+{ "_id" : ObjectId("5da3ef044943bd05b44df8b7"), "dept_no" : "d2", "dept_name" : "Sales", "location" : "South Ogden" }
+{ "_id" : ObjectId("5da3ef044943bd05b44df8b8"), "dept_no" : "d3", "dept_name" : "Development", "location" : "Ogden" }
+
+
+/*select * from departmnets where dept_no ='d1' */
+> db.departments.find({"dept_no":"d1"})
+{ "_id" : ObjectId("5da3ee0a4943bd05b44df8b6"), "dept_no" : "d1", "dept_name" : "Research", "location" : "Ogden" }
+
+/* select * from departments where dept_name = 'Research' */
+> db.departments.find({"dept_name":"Research"})
+{ "_id" : ObjectId("5da3ee0a4943bd05b44df8b6"), "dept_no" : "d1", "dept_name" : "Research", "location" : "Ogden" }
+
+
+/* select * from departments where dept_name = 'Ogden' */
+> db.departments.find({"location":"Ogden"})
+{ "_id" : ObjectId("5da3ee0a4943bd05b44df8b6"), "dept_no" : "d1", "dept_name" : "Research", "location" : "Ogden" }
+{ "_id" : ObjectId("5da3ef044943bd05b44df8b8"), "dept_no" : "d3", "dept_name" : "Development", "location" : "Ogden" }
+
+/* select * from departments where dept_name in ('Research','Sales') 
+> db.departments.find({"dept_name": {$in:["Research","Sales"]}})
+{ "_id" : ObjectId("5da3ee0a4943bd05b44df8b6"), "dept_no" : "d1", "dept_name" : "Research", "location" : "Ogden" }
+{ "_id" : ObjectId("5da3ef044943bd05b44df8b7"), "dept_no" : "d2", "dept_name" : "Sales", "location" : "South Ogden" }
+
+
+/* select * from departments where location = 'Ogden' and dept_name = 'Research'  */
+> db.departments.find({"location":"Ogden", "dept_name": "Research"})
+{ "_id" : ObjectId("5da3ee0a4943bd05b44df8b6"), "dept_no" : "d1", "dept_name" : "Research", "location" : "Ogden" }
+
+
+/******************************* CONTINUED *************************************/
+
+/* or operator in MongoDB */
+/* select * from departments where location = 'Ogden' or dept_name = 'Research'
+> db.departments.find({$or:[{location:"Ogden"},{dept_name:"Research"}]})
+{ "_id" : ObjectId("5e712b2d77ed5b245a02eb08"), "dept_no" : "d1", "dept_name" : "Research", "location" : "Ogden" }
+{ "_id" : ObjectId("5e712be077ed5b245a02eb0a"), "dept_no" : "d3", "dept_name" : "Development", "location" : "Ogden" }
+
+/* select * from departments where location = 'Ogden' or dept_name = 'Sales'
+> db.departments.find({$or:[{location:"Ogden"},{dept_name:"Sales"}]})
+{ "_id" : ObjectId("5e712b2d77ed5b245a02eb08"), "dept_no" : "d1", "dept_name" : "Research", "location" : "Ogden" }
+{ "_id" : ObjectId("5e712be077ed5b245a02eb09"), "dept_no" : "d2", "dept_name" : "Sales", "location" : "South Ogden" }
+{ "_id" : ObjectId("5e712be077ed5b245a02eb0a"), "dept_no" : "d3", "dept_name" : "Development", "location" : "Ogden" }
+>  
+
+/* select * from departments where location = 'Ogden' and dept_name = 'Research'  */
+> db.departments.find({$and : [{"dept_name":"Research"},{"location":"Ogden"}]})
+{ "_id" : ObjectId("5e712b2d77ed5b245a02eb08"), "dept_no" : "d1", "dept_name" : "Research", "location" : "Ogden" }
+
+
+/* select * from departments where location = 'Ogden' or 'South Ogden' and dept_name = 'Research'  */
+
+
+
+/* NOW let us add few more documents to projects collection */
+
+
+/* Add projects to database sample, an example is given, use same example to cretae other projects.*/
+> db.projects.insertOne({"project_no":"p3", "project_name":"Mercury", "budget":186500})
+> db.projects.insertOne({"project_no":"p1", "project_name":"Apollo", "budget":120000}) 
+> db.projects.insertOne({"project_no":"p2", "project_name":"Gemini", "budget":95000}) 
+
+/* select * from project where bugdet = 186500  */
+
+> db.projects.find({"budget":186500})
+> db.projects.find({"budget" : {$eq: 186500}})
+{ "_id" : ObjectId("5e76849a20a17417fb4c90b6"), "project_no" : "p3", "project_name" : "Mercury", "budget" : 186500 }
+>  
+/* find out projects with budget > 100000  */
+/* select * from project where budget > 100000 */
+> db.projects.find({"budget" : {$gt: 100000}})
+{ "_id" : ObjectId("5e76849a20a17417fb4c90b6"), "project_no" : "p3", "project_name" : "Mercury", "budget" : 186500 }
+{ "_id" : ObjectId("5e76859320a17417fb4c90b7"), "project_no" : "p1", "project_name" : "Apollo", "budget" : 120000 }
+>  
+
+
+/* like in mongo db */
+/* project that contains G */
+/* select * from project where project_name like '%G%'  */
+> db.projects.find({"project_name": /G/}) 
+
+/* select * from project where project_name like '%e%' */
+> db.projects.find({"project_name": /e/})
+{ "_id" : ObjectId("5da71dddc72bc54133eb12db"), "project_no" : "p2", "project_name" : "Gemini", "budget" : 95000 }
+{ "_id" : ObjectId("5da71dfec72bc54133eb12dc"), "project_no" : "p3", "project_name" : "Mercury", "budget" : 186500 }
+>
+
+/* projecting fields out of query */
+/* select project_no from project where project_name like '%e%'   */
+> db.projects.find({"project_name": /e/},{"project_no":1})
+{ "_id" : ObjectId("5da71dddc72bc54133eb12db"), "project_no" : "p2" }
+{ "_id" : ObjectId("5da71dfec72bc54133eb12dc"), "project_no" : "p3" }
+>
+
+> db.projects.find({"project_name": /e/},{"project_no":1, "project_name":1})
+{ "_id" : ObjectId("5da71dddc72bc54133eb12db"), "project_no" : "p2", "project_name" : "Gemini" }
+{ "_id" : ObjectId("5da71dfec72bc54133eb12dc"), "project_no" : "p3", "project_name" : "Mercury" }
+>
+
+/* supressing the _id field from projection */
+> db.projects.find({"project_name": /e/},{"project_no":1, "project_name":1, "_id":0})
+{ "project_no" : "p2", "project_name" : "Gemini" }
+{ "project_no" : "p3", "project_name" : "Mercury" }
+>
+
+
+/* query all, include all */
+>> db.projects.find({}, {})
+{ "_id" : ObjectId("5da71dc1c72bc54133eb12da"), "project_no" : "p1", "project_name" : "Apollo", "budget" : 120000 }
+{ "_id" : ObjectId("5da71dddc72bc54133eb12db"), "project_no" : "p2", "project_name" : "Gemini", "budget" : 95000 }
+{ "_id" : ObjectId("5da71dfec72bc54133eb12dc"), "project_no" : "p3", "project_name" : "Mercury", "budget" : 186500 }
+>
+
+/* Return all but excluded fields */
+/* return all but _id fields */e
+> db.projects.find({}, {"_id":0})
+{ "project_no" : "p1", "project_name" : "Apollo", "budget" : 120000 }
+{ "project_no" : "p2", "project_name" : "Gemini", "budget" : 95000 }
+{ "project_no" : "p3", "project_name" : "Mercury", "budget" : 186500 }
+>
+
+
+> db.projects.find({}, {"_id":0, "project_no":0})
+{ "project_name" : "Apollo", "budget" : 120000 }
+{ "project_name" : "Gemini", "budget" : 95000 }
+{ "project_name" : "Mercury", "budget" : 186500 }
+>
+
+/*  mix and match now allowed with projection */ 
+> db.projects.find({},{"project_no":1, project_name:0})
+Error: error: {
+        "ok" : 0,
+        "errmsg" : "Projection cannot have a mix of inclusion and exclusion.",
+        "code" : 2,
+        "codeName" : "BadValue"
+}
+>  
+
+
+
+/* return specific fields from embeded documents */
+> db.employees.find({},{"first_name": 1, "last_name":1, "department.dept_name":1})
+{ "_id" : ObjectId("5da3f2374943bd05b44df8b9"), "first_name" : "Richard", "last_name" : "Fry", "department" : { "dept_name" : "Research" } }
+{ "_id" : ObjectId("5da3f2374943bd05b44df8ba"), "first_name" : "James", "last_name" : "Jones", "department" : { "dept_name" : "Research" } }
+{ "_id" : ObjectId("5da3f2374943bd05b44df8bb"), "first_name" : "Jane", "last_name" : "Johnson", "department" : { "dept_name" : "Sales" } }
+>
+
+
+/* return specific fields from embeded documents + supress id */
+> db.employees.find({},{"first_name": 1, "last_name":1, "department.dept_name":1, "_id":0})
+{ "first_name" : "Richard", "last_name" : "Fry", "department" : { "dept_name" : "Research" } }
+{ "first_name" : "James", "last_name" : "Jones", "department" : { "dept_name" : "Research" } }
+{ "first_name" : "Jane", "last_name" : "Johnson", "department" : { "dept_name" : "Sales" } }
+>
+
+
+
+
+/* Quering embeded documents */
+select * from employee inner join department on employee.dept_no = department.dept_no where department.location = 'Ogden'
+> db.employees.find({"department.location":"Ogden"})
+{ "_id" : ObjectId("5e712c5177ed5b245a02eb0b"), "emp_no" : 12345, "first_name" : "Richard", "last_name" : "Fry", "department" : { "dept_no" : "d1", "dept_name" : "Research", "location" : "Ogden" } }
+{ "_id" : ObjectId("5e712c5177ed5b245a02eb0c"), "emp_no" : 12346, "first_name" : "James", "last_name" : "Jones", "department" : { "dept_no" : "d1", "dept_name" : "Research", "location" : "Ogden" } }
+>  
+
+select * from employee inner join department on employee.dept_no = department.dept_no where department.dept_name like %s%
+> db.employees.find({"department.dept_name":/s/})
+{ "_id" : ObjectId("5e712c5177ed5b245a02eb0b"), "emp_no" : 12345, "first_name" : "Richard", "last_name" : "Fry", "department" : { "dept_no" : "d1", "dept_name" : "Research", "location" : "Ogden" } }
+{ "_id" : ObjectId("5e712c5177ed5b245a02eb0c"), "emp_no" : 12346, "first_name" : "James", "last_name" : "Jones", "department" : { "dept_no" : "d1", "dept_name" : "Research", "location" : "Ogden" } }
+{ "_id" : ObjectId("5e712c5177ed5b245a02eb0d"), "emp_no" : 12347, "first_name" : "Jane", "last_name" : "Johnson", "department" : { "dept_no" : "d2", "dept_name" : "Sales", "location" : "South Ogden" } }
+>
+
+select * from employee inner join department on employee.dept_no = department.dept_no where department.dept_name like %R%
+> db.employees.find({"department.dept_name":/R/})
+{ "_id" : ObjectId("5e712c5177ed5b245a02eb0b"), "emp_no" : 12345, "first_name" : "Richard", "last_name" : "Fry", "department" : { "dept_no" : "d1", "dept_name" : "Research", "location" : "Ogden" } }
+{ "_id" : ObjectId("5e712c5177ed5b245a02eb0c"), "emp_no" : 12346, "first_name" : "James", "last_name" : "Jones", "department" : { "dept_no" : "d1", "dept_name" : "Research", "location" : "Ogden" } }
+>  
+
+
+mongo dump:
+
+C:\Program Files\MongoDB\Server\5.0\bin>mongodump --host localhost --db test --out "c:\temp\test\"
+
+
+/* inserting employees with project info */
+
+> db.employees_with_projects.insertMany([   {     "emp_no": 12345,     "first_name": "Richard",     "last_name": "Fry",     "department": {       "dept_no": "d1",       "dept_name": "Research",       "location": "Ogden"     },     "project": [       {         "project_no": "p3",         "project_name": "Mercury",         "budget": 186500       },       {         "project_no": "p1",         "project_name": "Apollo",         "budget": 120000       }     ]   },   {     "emp_no": 12346,     "first_name": "James",     "last_name": "Jones",     "department": {       "dept_no": "d1",       "dept_name": "Research",       "location": "Ogden"     },     "project":[{         "project_no": "p3",         "project_name": "Mercury",         "budget": 186500       },       {         "project_no": "p2",         "project_name": "Gemini",         "budget": 95000       }]   }   ]) 
+
+/* Querying with arrays */
+/* select * from employees inner join works_on inner join project where project.project_no = p3 */
+> db.employees_with_projects.find({"project.project_no":"p3"})
+{ "_id" : ObjectId("5e76f1ae20a17417fb4c90b9"), "emp_no" : 12345, "first_name" : "Richard", "last_name" : "Fry", "department" : { "dept_no" : "d1", "dept_name" : "Research", "location" : "Ogden" }, "project" : [ { "project_no" : "p3", "project_name" : "Mercury", "budget" : 186500 }, { "project_no" : "p1", "project_name" : "Apollo", "budget" : 120000 } ] }
+{ "_id" : ObjectId("5e76f1ae20a17417fb4c90ba"), "emp_no" : 12346, "first_name" : "James", "last_name" : "Jones", "department" : { "dept_no" : "d1", "dept_name" : "Research", "location" : "Ogden" }, "project" : [ { "project_no" : "p3", "project_name" : "Mercury", "budget" : 186500 }, { "project_no" : "p2", "project_name" : "Gemini", "budget" : 95000 } ] }
+>
+
+> db.employees_with_projects.find({"project.project_no":"p1"})
+
+
+/* select * from employees inner join works on inner join project where project.project_name = gemini or project.budget > 150000 */
+
+
+ 
+{$or: [{"project.project_name":"Gemini"},{"project.budget": {$gt : 150000}}]}
+
+> db.employees_with_projects.find({$or: [{"project.project_name":"Gemini"},{"project.budget": {$gt : 150000}}]})
+{ "_id" : ObjectId("5e76f1ae20a17417fb4c90b9"), "emp_no" : 12345, "first_name" : "Richard", "last_name" : "Fry", "department" : { "dept_no" : "d1", "dept_name" : "Research", "location" : "Ogden" }, "project" : [ { "project_no" : "p3", "project_name" : "Mercury", "budget" : 186500 }, { "project_no" : "p1", "project_name" : "Apollo", "budget" : 120000 } ] }
+{ "_id" : ObjectId("5e76f1ae20a17417fb4c90ba"), "emp_no" : 12346, "first_name" : "James", "last_name" : "Jones", "department" : { "dept_no" : "d1", "dept_name" : "Research", "location" : "Ogden" }, "project" : [ { "project_no" : "p3", "project_name" : "Mercury", "budget" : 186500 }, { "project_no" : "p2", "project_name" : "Gemini", "budget" : 95000 } ] }
+>
+
+
+
+
+    

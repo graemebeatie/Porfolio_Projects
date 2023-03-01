@@ -1,0 +1,90 @@
+CREATE TRIGGER tr_PassMustHaveAReservation ON ShuttleReservation
+AFTER INSERT, UPDATE
+AS
+	BEGIN
+		DECLARE @PassengerFirst			varchar(20) = ''
+		DECLARE @PassengerLast			varchar(20) = ''
+		DECLARE @tempGuestID			smallint = 0
+		DECLARE @PassID					smallint = 0
+		DECLARE @PickUpTime				smalldatetime = GETDATE()
+		DECLARE @PreReservation			smalldatetime = GETDATE()
+		DECLARE @PostReservation		smalldatetime = GETDATE()
+		DECLARE @ShuttleReservationID	smallint = 0
+		DECLARE @Nights					tinyint
+		DECLARE @CheckOutTime			smalldatetime
+
+		--PRINT'Inserted table'
+		--SELECT * FROM inserted i
+		--PRINT'Deleted table'
+		--SELECT * FROM deleted d
+
+		SET @ShuttleReservationID = (SELECT ShuttleReservationID
+		FROM inserted i)
+
+		--PRINT'SRID'
+		--PRINT CAST(@ShuttleReservationID as varchar)
+
+		SET @PassID = (SELECT PassID FROM inserted)
+		SET @PickUpTime = (SELECT PickUpTime FROM inserted)
+
+		SELECT @PassengerFirst = PassFirst,
+			@PassengerLast = PassLast
+		FROM Passenger
+		WHERE PassID = @PassID
+
+		-- Add how many days plus 1 past checkout
+		
+		-- 1 day before the asked time
+		SET @PreReservation = DATEADD(DAY, -1, @PickUpTime)
+		-- 1 day after the asked time
+		SET @PostReservation = DATEADD(DAY, 1, @PickUpTime)
+
+		--	PRINT'First:'
+		--PRINT @PassengerFirst
+
+		--PRINT'Last:'
+		--PRINT @PassengerLast
+
+
+		--PRINT'PassID:'
+		--PRINT CAST(@PassID as varchar)
+
+		--PRINT'Pick up time:'
+		--PRINT CAST(@PickUpTime as varchar)
+
+		--PRINT'Pre reservation time:'
+		--PRINT CAST(@PreReservation as varchar)
+
+		--PRINT'Post res time:'
+		--PRINT CAST(@PostReservation as varchar)
+
+		-- Get the guest ID from FARMS and error checks itself
+		EXEC @tempGuestID =  sp_GetGuestID @PassengerFirst, @PassengerLast, @tempGuestID
+
+		SET @Nights = (SELECT Nights FROM FARMS_TR_BEATIE.dbo.Folio WHERE GuestID = @tempGuestID 
+			AND CheckinDate BETWEEN @PreReservation AND @PostReservation
+			AND [Status] != 'X') 
+
+		-- add an extra day passed check out for use
+		SET @Nights += 1
+		SET @CheckOutTime = DATEADD(DAY, @Nights, @PickUpTime)
+
+		
+		--PRINT'TempGuestID:'
+		--PRINT CAST(@TempGuestID as varchar)
+
+		-- already checked that the guest exists in the database now check if they have a reservation
+		-- that has not be cancelled
+		IF  NOT EXISTS(
+			SELECT * FROM FARMS_TR_BEATIE.dbo.Folio
+			--FROM OPENQUERY (LOCALSERVER, 'Select * FROM FARMS_TR_BEATIE.dbo.Folio') as passthrough
+			WHERE GuestID = @tempGuestID AND CheckinDate BETWEEN @PreReservation AND @CheckOutTime
+			AND [Status] != 'X'
+		)
+			BEGIN
+				RAISERROR(55646, 10, 1, @PassengerFirst)
+				ROLLBACK
+			END
+	END
+
+GO

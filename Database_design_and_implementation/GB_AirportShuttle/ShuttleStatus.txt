@@ -1,0 +1,3 @@
+|A|Active|
+|O|Out for Maintenance|
+|N|Needs Maintenance Soon|

@@ -1,0 +1,21 @@
+CREATE TRIGGER tr_HotelExists ON ShuttleTrip
+AFTER INSERT, UPDATE
+AS 
+
+	DECLARE @HotelID	smallint
+	DECLARE @ErrMsg		varchar(max)
+	
+	SET @ErrMsg = 'Sorry this is not a valid hotel in the farms database. Please try again'
+	SELECT @HotelID = i.HotelID
+	FROM inserted i
+
+	IF NOT EXISTS(
+			SELECT * FROM FARMS_TR_BEATIE.dbo.Hotel WHERE HotelID = @HotelID
+			--FROM OPENQUERY (LOCALSERVER, 'Select * FROM FARMS_TR_BEATIE.dbo.Hotel') as passthrough
+			--WHERE passthrough.HotelID = @HotelID
+	)
+		BEGIN
+			RAISERROR(@ErrMsg, 10, 1, @HotelID)
+			ROLLBACK
+		END
+GO

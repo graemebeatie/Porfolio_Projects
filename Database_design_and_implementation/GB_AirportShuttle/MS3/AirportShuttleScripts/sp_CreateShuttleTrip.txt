@@ -1,0 +1,51 @@
+IF EXISTS(SELECT * FROM INFORMATION_SCHEMA.ROUTINES WHERE SPECIFIC_NAME = 'sp_CreateShuttleTrip')
+DROP PROCEDURE sp_CreateShuttleTrip
+
+GO
+
+CREATE PROCEDURE sp_CreateShuttleTrip
+	@NumSeats					smallint,
+	@Chosentime					smalldatetime,
+	@SRStatus					char(1),
+	@PassengerID				smallint,
+	@AirportID					smallint,
+	@DriverID					smallint,
+	@NewShuttleID				smallint,
+	@HotelID					smallint,
+	@ArrivalTime				smalldatetime,
+	@SRID						smallint OUTPUT
+
+AS
+BEGIN
+		--Need to check if their is enough seats if not send an error
+		DECLARE @SeatsRemaining		smallint
+		
+		-- This will do error handling to check if the date is correct
+		-- if the shuttle is real
+		EXEC @SeatsRemaining = dbo.CheckRemainingSeats
+			@TodaysDate = @ChosenTime,
+			@ShuttleID = @NewShuttleID
+		
+		-- if there are not enough seats remaining on this shuttle
+		IF @NumSeats > @SeatsRemaining  
+			BEGIN
+				RAISERROR('There are not enough seats remaining on this shuttle. Please try another one',
+				10,1, @NewShuttleID)
+			RETURN -1
+			END
+		
+		-- if there are enough seats remaining
+		ELSE
+			BEGIN
+				EXEC sp_CreateShuttleReservation
+					@NumSeats, @Chosentime, @SRStatus, @PassengerID,
+					@ShuttleReservationID = @SRID OUTPUT
+			
+				INSERT INTO ShuttleTrip
+					VALUES(@SRID,@AirportID,@DriverID,@NewShuttleID,@HotelID,@ArrivalTime)
+
+			END -- else
+
+END -- procedure
+
+GO

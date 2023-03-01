@@ -1,0 +1,4 @@
+|Ogden Hinckely|3909 Airport Road|Ogden|UT|USA|84405|
+|Brigham City Municipal|1800 N 2000 W|Brigham City|UT|84302|
+|Salt Lake International|776 N Terminal Drive|Salt Lake City|UT|84122|
+|Morgan County Airport|5827 Willow Creek Rd|Morgan|UT|84050|

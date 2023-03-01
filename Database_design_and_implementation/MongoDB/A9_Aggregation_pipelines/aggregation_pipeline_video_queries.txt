@@ -1,0 +1,71 @@
+/* Query 1: Find first name, last name and department name of all the employees who work in Ogden. 
+> db.employees.aggregate([{$match: {
+...  "department.location":"Ogden"
+... }}, {$project: {
+...   last_name:1, first_name:1, "department.dept_name":1, _id:0
+... }}
+{ "first_name" : "Richard", "last_name" : "Fry", "department" : { "dept_name" : "Research" } }
+{ "first_name" : "James", "last_name" : "Jones", "department" : { "dept_name" : "Research" } }
+>
+
+/* Query 2: Find first name, last name and department name of all the employees who work in research 
+department ordered by last name descending.
+*/
+
+> db.employees.aggregate([{$match: {
+...  "department.dept_name":"Research"
+... }}, {$project: {
+...   last_name:1, first_name:1, "department.dept_name":1, _id:0
+... }}, {$sort: {
+...   last_name: -1
+... }}])
+{ "first_name" : "James", "last_name" : "Jones", "department" : { "dept_name" : "Research" } }
+{ "first_name" : "Richard", "last_name" : "Fry", "department" : { "dept_name" : "Research" } }
+>
+
+/* Query 3: select count(*) from department where location = "Ogden" */
+
+> db.departments.aggregate([{$match: {
+...   location:"Ogden"
+... }}, {$group: {
+...   _id: null,
+...   Total: {
+...     $sum: 1
+...   }
+... }}])
+{ "_id" : null, "Total" : 2 }
+>
+
+/* Query 4 preparation */
+In power point and in video. 
+
+/* query 4: group docuemnts by location */
+> db.employees_with_projects.aggregate([{$group: {   _id: "$department.location"    }}])
+{ "_id" : "South Ogden" }
+{ "_id" : "Ogden" }
+>
+
+/* query 5: find total employees that work in each location */
+> db.employees_with_projects.aggregate([{$group: {   _id: "$department.location",   TotalEmployees: {$sum: 1}    }}])
+{ "_id" : "Ogden", "TotalEmployees" : 2 }
+{ "_id" : "South Ogden", "TotalEmployees" : 1 }
+>
+
+/* Query 6: Find out average salary of all the employees by location. */ 
+
+> db.employees_with_projects.aggregate([{$group: {   _id: "$department.location",   AverageSalary: {     $avg: "$salary"   } }}])
+{ "_id" : "Ogden", "AverageSalary" : 61000 }
+{ "_id" : "South Ogden", "AverageSalary" : 70000 }
+
+
+/* Query 7: Find out average salary (of employees) by location sorted by average salary ascending. */
+> db.employees_with_projects.aggregate([{$group: {   _id: "$department.location",   AverageSalary: {     $avg: "$salary"   } }}, {$sort: {   "AverageSalary": -1 }}])
+{ "_id" : "South Ogden", "AverageSalary" : 70000 }
+{ "_id" : "Ogden", "AverageSalary" : 61000 }
+>
+
+
+/* Query 8: Find out average salary by location where average salary is les than 65K sorted by average salary ascending. */
+$match: {first_name: /e/}
+db.employees_with_projects.aggregate([ $match: {first_name: /a/},{$group: {   _id: "$department.location",   AverageSalary: {     $avg: "$salary"   } }}, {$sort: {   "AverageSalary": -1 }}])
+{ "_id" : "Ogden", "AverageSalary" : 60000 }

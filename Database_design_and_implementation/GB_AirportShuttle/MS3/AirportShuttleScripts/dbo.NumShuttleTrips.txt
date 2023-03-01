@@ -1,0 +1,15 @@
+IF EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID('dbo.NumShuttleTrips') AND type in (N'FN', N'IF',N'TF',N'FS',N'FT'))
+DROP FUNCTION dbo.NumShuttleTrips
+
+GO
+
+CREATE FUNCTION dbo.NumShuttleTrips()
+RETURNS	TABLE
+
+RETURN (
+	SELECT  st.ShuttleID, ShuttleCapacity, ShuttleVin, ShuttleLicensePlateNum, ShuttleStatus, COUNT(ShuttleTripID) as Trips
+	FROM ShuttleTrip st JOIN Shuttle s ON (st.ShuttleID = s.ShuttleID)
+	GROUP BY st.ShuttleID, ShuttleCapacity, ShuttleVin, ShuttleLicensePlateNum, ShuttleStatus
+	)
+
+GO

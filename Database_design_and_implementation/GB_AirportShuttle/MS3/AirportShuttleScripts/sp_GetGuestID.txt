@@ -1,0 +1,36 @@
+IF EXISTS(SELECT * FROM INFORMATION_SCHEMA.ROUTINES WHERE SPECIFIC_NAME = 'sp_GetGuestID')
+	DROP PROCEDURE sp_GetGuestID;
+GO
+
+CREATE PROCEDURE sp_GetGuestID
+	@PassFirst	varchar(20),
+	@PassLast	varchar(20),
+	@GuestID smallint OUTPUT
+AS
+BEGIN
+--Get a table of all the Guests and check if the passed name exists in farms
+-- After that use that guest id to check if they have a reservation for the timegiven
+	
+	SET @GuestID = 0
+	DECLARE @FullName varchar(40) = @PassFirst + ' ' + @PassLast
+
+	IF EXISTS (SELECT * FROM FARMS_TR_BEATIE.dbo.Guest
+	--OPENQUERY (LOCALSERVER, 'Select * FROM FARMS_TR_BEATIE.dbo.Guest') 
+		WHERE GuestFirst = @PassFirst)
+		BEGIN
+			SET @GuestID = (SELECT GuestID FROM FARMS_TR_BEATIE.dbo.Guest
+			--FROM OPENQUERY (LOCALSERVER, 'Select * FROM FARMS_TR_BEATIE.dbo.Guest') 
+				WHERE GuestFirst = @PassFirst AND GuestLast = @PassLast)
+			RETURN @GuestID
+		END
+
+	ELSE
+		BEGIN
+			RAISERROR (55645, 10, 1, @FullName)
+			ROLLBACK
+		END
+
+	RETURN @GuestID
+END
+
+GO

@@ -1,0 +1,244 @@
+------------------------------------TESTING SCRIPT------------------------
+
+
+--1.	Check Todays PassengerList
+	-- I changed a few folio entries manually so that the days would line up better
+
+PRINT 'Testing PassengerList with no added guests'
+PRINT''
+SELECT * FROM dbo.TodaysPassengerList('04-15-2022', 4500)
+PRINT''
+
+PRINT 'Testing PassengerList with an invalid date'
+PRINT''
+SELECT * FROM dbo.TodaysPassengerList(04-15-2022, 4500)
+PRINT''
+
+PRINT 'Testing PassengerList with an invalid shuttle'
+PRINT''
+SELECT * FROM dbo.TodaysPassengerList('04-15-2022', 450)
+PRINT''
+
+
+--2.	Check Remaining Seats for the list
+PRINT 'Testing PassengerList with no added guests'
+PRINT''
+SELECT * FROM dbo.TodaysPassengerList('04-15-2022', 4500)
+PRINT''
+
+DECLARE @SeatsRemaining smallint
+
+EXEC @SeatsRemaining = CheckRemainingSeats '4/15/2022', 4500
+PRINT @SeatsRemaining
+
+--3.	Show Available shuttles
+	-- shows available shuttles that can be used by other functions
+SELECT * FROM dbo.AvailableShuttles()
+
+--4.	Show ShuttleTrips
+SELECT * FROM dbo.NumShuttleTrips()
+	--a.	Future idea is that if it reaches a certain number it will change status automatically
+		--i.	Haven’t done this but could add this
+
+
+--5.	Create ShuttleReservation/Trip
+-- Look at the passengers and choose one to try and make a reservation for. 
+SELECT * FROM Passenger
+
+DECLARE @GuestID smallint
+EXEC @GuestID = sp_GetGuestID 'Greg', 'Anderson', @GuestID
+
+-- Check if when they have a reservation so that they will be able to make a shuttle reservation
+SELECT * 
+FROM OPENQUERY (LOCALSERVER, 'Select * FROM FARMS_TR_BEATIE.dbo.Folio')
+WHERE GuestID = @GuestID 
+GO
+
+-- Making a reservation on the 3/25/2022 before the day they are checking in
+DECLARE @HoldingSRID smallint 
+EXEC sp_CreateShuttleTrip
+	@NumSeats			=1,
+	@Chosentime			='3/25/2022 10:00:00',
+	@SRStatus			= 'R',
+	@PassengerID		= 3,
+	@AirportID			= 3,
+	@DriverID			= 3530,
+	@NewShuttleID		= 4500,
+	@HotelID			= 2200,
+	@ArrivalTime		= '3/25/2022 10:15:00',
+	@SRID				= @HoldingSRID
+
+PRINT''
+PRINT'Shuttle trip after creating one'
+PRINT''
+
+SELECT * FROM ShuttleTrip
+SELECT * FROM ShuttleReservation
+
+GO
+
+PRINT''
+PRINT'Shuttle trip with invalid hotelID'
+PRINT''
+
+DECLARE @HoldingSRID smallint 
+
+EXEC sp_CreateShuttleTrip
+	@NumSeats			=1,
+	@Chosentime			='3/15/2022 10:00:00',
+	@SRStatus			= 'R',
+	@PassengerID		= 3,
+	@AirportID			= 3,
+	@DriverID			= 3530,
+	@NewShuttleID		= 4500,
+	@HotelID			= 220, -- incorrect hotel ID managed by trigger
+	@ArrivalTime		= '3/15/2022 10:15:00',
+	@SRID				= @HoldingSRID
+
+
+GO
+
+
+DECLARE @HoldingSRID smallint 
+
+PRINT''
+PRINT'Shuttle trip with invalid Guest'
+PRINT''
+
+EXEC sp_CreateShuttleTrip
+	@NumSeats			=1,
+	@Chosentime			='3/15/2022 10:00:00',
+	@SRStatus			= 'R',
+	@PassengerID		= 15, -- invalid passengerID
+	@AirportID			= 3,
+	@DriverID			= 3530,
+	@NewShuttleID		= 4500,
+	@HotelID			= 220,
+	@ArrivalTime		= '3/15/2022 10:15:00', 
+	@SRID				= @HoldingSRID
+
+GO
+
+-- show the available dates for greg anderson
+SELECT * FROM Passenger
+
+DECLARE @GuestID smallint
+EXEC @GuestID = sp_GetGuestID 'Greg', 'Anderson', @GuestID
+
+-- Check if when they have a reservation so that they will be able to make a shuttle reservation
+SELECT * 
+FROM OPENQUERY (LOCALSERVER, 'Select * FROM FARMS_TR_BEATIE.dbo.Folio')
+WHERE GuestID = @GuestID 
+GO
+
+DECLARE @HoldingSRID smallint
+PRINT''
+PRINT'Shuttle trip with valid Guest for their checkout time'
+PRINT''
+
+EXEC sp_CreateShuttleTrip
+	@NumSeats			=1,
+	@Chosentime			='3/15/2022 12:00:00', 
+	@SRStatus			= 'R',
+	@PassengerID		= 3, 
+	@AirportID			= 3,
+	@DriverID			= 3530,
+	@NewShuttleID		= 4500,
+	@HotelID			= 2200,
+	@ArrivalTime		= '3/15/2022 12:00:00', 
+	@SRID				= @HoldingSRID
+
+GO
+
+
+--6.	Show new passengerList with greg
+PRINT 'Testing PassengerList after adding a trip'
+PRINT''
+SELECT * FROM dbo.TodaysPassengerList('03-15-2022', 4500)
+PRINT''
+
+--7.	Update shuttle reservation
+
+SELECT * FROM ShuttleReservation
+
+-- Just changing time
+EXEC sp_UpdateShuttleReservation
+	@ShuttleReservationID = 7001,
+	@NumSeatsRequested = 3,
+	@PickUpTime = '4/16/2022 00:00:00',
+	@ShuttleReservationStatus = 'R'
+GO
+
+SELECT * FROM ShuttleReservation
+
+
+--a.	Show the all values can be null
+
+EXEC sp_UpdateShuttleReservation
+	@ShuttleReservationID = 7001
+
+GO
+
+SELECT * FROM ShuttleReservation
+
+	--b.	Show all values being changed
+	EXEC sp_UpdateShuttleReservation
+	@ShuttleReservationID = 7001,
+	@NumSeatsRequested = 4,
+	@PickUpTime = '4/14/2022 00:00:00',
+	@ShuttleReservationStatus = 'X'
+
+GO
+
+SELECT * FROM ShuttleReservation
+
+	--c.	Show a combo
+
+EXEC sp_UpdateShuttleReservation
+	@ShuttleReservationID = 7004,
+	@NumSeatsRequested = 1,
+	@ShuttleReservationStatus = 'X'
+
+SELECT * FROM ShuttleReservation
+
+	--d. Show not enough seats
+EXEC sp_UpdateShuttleReservation
+	@ShuttleReservationID = 7004,
+	@NumSeatsRequested = 15,
+
+	@ShuttleReservationStatus = 'X'
+
+SELECT * FROM ShuttleReservation
+
+	--e. Show no Reservation
+EXEC sp_UpdateShuttleReservation
+	@ShuttleReservationID = 7004,
+	@NumSeatsRequested = 1,
+	@PickUpTime = '4/24/2022 00:00:00',
+	@ShuttleReservationStatus = 'X'
+
+SELECT * FROM ShuttleReservation
+
+--8.	Show when Status is changed to C or N the folio is updated
+	--a.	Use GetGuestID to show that it had changed
+
+	-- Billing before
+SELECT * 
+FROM OPENQUERY (LOCALSERVER, 'Select * FROM FARMS_TR_BEATIE.dbo.Billing')
+
+	-- Showing charge added with a no show
+EXEC sp_UpdateShuttleReservation
+	@ShuttleReservationID = 7006,
+	@ShuttleReservationStatus = 'N'
+
+	-- Billing after trigger is fired
+SELECT * 
+FROM OPENQUERY (LOCALSERVER, 'Select * FROM FARMS_TR_BEATIE.dbo.Billing')
+
+	-- Showing charge added with a completion
+EXEC sp_UpdateShuttleReservation
+	@ShuttleReservationID = 7002,
+	@ShuttleReservationStatus = 'C'
+
+SELECT * 
+FROM OPENQUERY (LOCALSERVER, 'Select * FROM FARMS_TR_BEATIE.dbo.Billing')

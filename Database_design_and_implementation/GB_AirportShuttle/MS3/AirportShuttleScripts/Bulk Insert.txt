@@ -1,0 +1,49 @@
+BULK INSERT Airport FROM 'C:\AirportShuttleStage\Airport.txt'
+WITH (
+	FIELDTERMINATOR = '|',
+	ROWTERMINATOR = '\n'
+	)
+
+BULK INSERT Driver FROM 'C:\AirportShuttleStage\Driver.txt'
+WITH (
+	FIELDTERMINATOR = '|',
+	ROWTERMINATOR = '\n'
+	)
+
+BULK INSERT DriversLicense FROM 'C:\AirportShuttleStage\DriversLicense.txt'
+WITH (
+	FIELDTERMINATOR = '|',
+	ROWTERMINATOR = '\n'
+	)
+
+BULK INSERT Passenger FROM 'C:\AirportShuttleStage\Passenger.txt'
+WITH (
+	FIELDTERMINATOR = '|',
+	ROWTERMINATOR = '\n',
+	LastRow = 7 -- This was required because it would have an error when reading the 
+	-- Null entries at the bottom of the txt file
+	--ERRORFILE = 'C:\AirportShuttleStage\Passenger1.log'
+	)
+
+BULK INSERT Shuttle FROM 'C:\AirportShuttleStage\Shuttle.txt'
+WITH (
+	FIELDTERMINATOR = '|',
+	ROWTERMINATOR = '\n'
+	)
+GO
+
+BULK INSERT ShuttleReservation FROM 'C:\AirportShuttleStage\ShuttleReservation.txt'
+WITH (
+	FIELDTERMINATOR = '|',
+	ROWTERMINATOR = '\n'
+	)
+
+GO
+
+BULK INSERT ShuttleTrip FROM 'C:\AirportShuttleStage\ShuttleTrip.txt'
+WITH (
+	FIELDTERMINATOR = '|',
+	ROWTERMINATOR = '\n'
+	)
+
+GO

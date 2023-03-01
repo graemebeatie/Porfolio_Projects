@@ -1,0 +1,54 @@
+IF EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID('dbo.CheckRemainingSeats') AND type in (N'FN', N'IF',N'TF',N'FS',N'FT'))
+DROP FUNCTION dbo.CheckRemainingSeats
+
+GO
+
+CREATE FUNCTION dbo.CheckRemainingSeats (@TodaysDate varchar(max), @ShuttleID smallint)
+RETURNS varchar(max)
+
+AS 
+BEGIN
+
+	DECLARE @IsDate				smallint
+	DECLARE @ShuttleCapacity	smallint = 0
+	DECLARE @ShuttleSeatsUsed	smallint = 0
+	DECLARE @SeatDiff			smallint = 0
+	DECLARE @ReturnStatement	varchar = ''
+
+	--Basically the same error handling for TodaysPassengerList
+
+	SET @IsDate = ISDATE(@TodaysDate)
+-- Check if Todays date is a real date if not return it is not a date
+	IF @IsDate = 0
+		BEGIN
+			SET @ReturnStatement = 'Sorry ' + @TodaysDate + ' is not a valid date. Please try again '
+			RETURN @ReturnStatement
+		END
+-- Check if the Shuttle ID is Null and return a message if true
+	IF (SELECT COUNT(*) FROM Shuttle WHERE @ShuttleID = ShuttleID) = 0
+		BEGIN
+		SET @ReturnStatement = 'Sorry ' + CAST(@ShuttleID as varchar)+ ' is not a valid Shuttle. Please try again '
+			RETURN @ReturnStatement
+		END
+		
+	SET @ShuttleCapacity = (SELECT ShuttleCapacity FROM Shuttle WHERE ShuttleID = @ShuttleID)
+	SET @ShuttleSeatsUsed = (
+			SELECT SUM(NumSeatsRequested) as TotalRequested
+			 FROM Passenger p
+					INNER JOIN ShuttleReservation sr ON (sr.PassID = p.PassID)
+					INNER JOIN ShuttleTrip st ON (st.ShuttleReservationID = sr.ShuttleReservationID)
+					INNER JOIN Airport a ON (a.AirportID = st.AirportID)
+				WHERE st.ShuttleID = @ShuttleID AND CAST(ArrivalTime as date) = CAST(@TodaysDate as date)
+			)
+
+	SET @SeatDiff = @ShuttleCapacity - @ShuttleSeatsUsed
+
+	-- Dont include extra descriptors so that I can use this varchar for error checking
+	-- for other functions, sprocs, or triggers
+
+	SET @ReturnStatement = CAST(@SeatDiff as varchar)
+
+	
+		RETURN (@ReturnStatement)
+END
+GO

@@ -1,0 +1,60 @@
+CREATE TRIGGER tr_AddShuttleCharge ON ShuttleReservation
+AFTER UPDATE
+AS 
+	DECLARE @SRStatus char(1)
+	SELECT @SRStatus = inserted.ShuttleReservationStatus FROM inserted
+	
+	IF UPDATE(ShuttleReservationStatus)
+		BEGIN
+			IF @SRStatus = 'C' OR @SRStatus = 'N'
+				BEGIN
+				
+				DECLARE @PassengerID		smallint
+				DECLARE @GuestID			smallint
+				DECLARE @First				varchar(20)
+				DECLARE @Last				varchar(20)
+				DECLARE @PickUpTime			smalldatetime
+				DECLARE @PreReservation		smalldatetime
+				DECLARE @PostReservation	smalldatetime
+
+				SET @PickUpTime = (SELECT PickUpTime FROM inserted)
+				SET @PreReservation = DATEADD(DAY, -1, @PickUpTime)
+				SET @PostReservation = DATEADD(DAY, 1, @PickUpTime)
+
+
+				-- info for billing
+				DECLARE @FolioID			smallint
+				DECLARE @BillingCategoryID	smallint = 10 -- I added a shuttle fee category
+				DECLARE @BillingDescription	char(30) = 'Used free shuttle service'
+				DECLARE @BillingAmount		smallmoney = 0
+				DECLARE @BillingItemQty		tinyint = 1
+				DECLARE @BillingItemDate	smalldatetime = GETDATE()
+
+				-- charge them if they No show to the time they requested
+				IF @SRStatus = 'N'
+					BEGIN
+						SET @BillingAmount = 15
+						SET @BillingDescription = 'Shuttle Fee for No Showing'
+					END
+
+				SET @PassengerID = (SELECT PassID FROM inserted)
+				SET @First = (SELECT PassFirst FROM Passenger WHERE PassID = @PassengerID)
+				SET @Last = (SELECT PassLast FROM Passenger WHERE PassID = @PassengerID)
+
+				EXEC @GuestID = sp_GetGuestID @First, @Last, @GuestID
+
+				--SET @FolioID = (SELECT FolioID 
+				--FROM OPENQUERY (LOCALSERVER, 'Select * FROM FARMS_TR_BEATIE.dbo.Folio') as passthrough
+				--WHERE GuestID = @GuestID AND CheckinDate BETWEEN @PreReservation AND @PostReservation
+				--AND [Status] != 'X')
+				SET @FolioID = (SELECT FolioID FROM FARMS_TR_BEATIE.dbo.Folio
+				WHERE GuestID = @GuestID AND CheckinDate BETWEEN @PreReservation AND @PostReservation
+				AND [Status] != 'X')
+
+				INSERT INTO FARMS_TR_BEATIE.dbo.Billing(FolioID,BillingCategoryID,
+   					 BillingDescription,BillingAmount,BillingItemQty,BillingItemDate)
+					VALUES(@FolioID, @BillingCategoryID, @BillingDescription,
+						@BillingAmount, @BillingItemQty, @BillingItemDate)
+			END--if
+	END--Update check
+GO

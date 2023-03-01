@@ -1,0 +1,28 @@
+1. C:\Program Files\MongoDB\Server\5.0\bin>mongorestore.exe --host=localhost --db=Northwind "C:\Users\graem\Downloads\northwind_dump\northwind"
+
+2.
+
+	1. 
+	> db
+	test
+	> use Northwind
+	switched to db Northwind
+	> db.orders.find({})
+
+	2. > db.orders.find({"customer.CustomerID":"VICTE"})
+
+	3. > db.orders.find({"Employee.LastName":"Buchanan"})
+
+	4. > db.orders.find({$or: [{"Employee.LastName":"Buchanan"},{"Shipper.CompanyName":"Federal Shipping"}]})
+	
+	5. > db.orders.find({"Shipper.CompanyName":"Federal Shipping"}, {"customer.CustomerID":1,"customer.CompanyName":1})
+
+	6. > db.orders.find({"OrderDate":{$lt:ISODate('1997-01-01T00:00:00.000+00:00')}}, {"_id": 1, "OrderDate":1, "RequiredDate": 1, "ShippedDate": 1, "Shipper.CompanyName":1})
+	
+	7. > db.orders.find({"products.ProductName":"Louisiana Fiery Hot Pepper Sauce"},{"customer.CustomerID": 1, "customer.CustomerID": 1, "customer.CompanyName":1})
+
+	8. > db.orders.find({"Freight":{$gt: 50}},{"customer.CustomerID":1, "customer.CompanyName":1})
+
+	9. > db.orders.find({"products.ProductName" :"Chang"})
+
+	10. > db.orders.find({$or: [{"products.ProductName":"Chang"},{"Shipper.CompanyName":"Federal Shipping"}]})

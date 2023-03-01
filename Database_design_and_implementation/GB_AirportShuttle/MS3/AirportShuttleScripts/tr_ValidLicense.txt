@@ -1,0 +1,38 @@
+CREATE TRIGGER tr_ValidLicense ON DriversLicense
+AFTER INSERT, UPDATE 
+AS
+	DECLARE @DLCountry		varchar(30)
+	DECLARE @DLExpiration	smalldatetime
+	DECLARE @DLNum			varchar(8)
+	DECLARE @TodaysDate		smalldatetime = GETDATE()
+	DECLARE @IsExpired		binary = 0
+	
+	IF	@DLExpiration > @TodaysDate
+		BEGIN
+			SET @IsExpired = 1
+		END
+
+	SELECT @DLCountry = i.DriversLicenseCountry,
+		@DLExpiration = i.DriversLicenseExpiration,
+		@DLNum = i.DriversLicenseNum FROM inserted i
+
+
+	IF COLUMNS_UPDATED() & 12 = 12 AND @DLCountry != 'USA' AND @IsExpired = 1
+		BEGIN
+			RAISERROR(55647, 10, 1, @DLNum)
+			ROLLBACK
+		END
+
+	IF @DLCountry != 'USA'
+		BEGIN
+			RAISERROR(55648, 10, 1, @DLNum)
+			ROLLBACK
+		END
+
+	IF @IsExpired = 1
+		BEGIN
+			RAISERROR(55649, 10, 1, @DLNum)
+			ROLLBACK
+		END
+
+GO

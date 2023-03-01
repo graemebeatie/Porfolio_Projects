@@ -1,0 +1,118 @@
+--1. Find the total number of orders by each ship country. 
+	var mapFunction1 = function() {
+		emit(this.ShipCountry, this.customer);
+	}
+
+	
+	var reduceFunction1 = function(keyCountry, countCustomer) {
+		count = countCustomer.length;
+		return count;
+	}
+
+	db.orders.mapReduce(
+		mapFunction1,
+		reduceFunction1,
+		{ out: "map_reduce1"}
+	)
+
+	db.map_reduce1.find()
+
+--2. Find the total order amount by each ship country. 
+
+	-- project country and total amount(the price * quantity) for each customer minus the discount for the items
+	var mapFunction2 = function() {
+		for (var idx = 0; idx < this.products.length; idx++){
+			var values =  (this.products[idx].UnitPrice * this.products[idx].Quantity);
+			emit(this.ShipCountry, values);
+		}
+	}
+	--hopefully looks like
+	--{"Country", "TotalAmount"}
+
+	-- sum all of the customer orders for each country
+
+	var reduceFunction2 = function(keyCountry, valuesPrices) {
+		return Array.sum(valuesPrices);
+	}
+	
+	-- put in map_reduce2
+
+	db.orders.mapReduce(
+		mapFunction2,
+		reduceFunction2,
+		{out: "map_reduce2"}
+	)
+	
+	-- show results
+	db.map_reduce2.find()
+
+	
+--3. Find the total number of customers served by each shipper. 
+	mapFunction3 = function() {
+		emit(this.Shipper.CompanyName, this.customer);
+	}
+
+	var reduceFunction3 = function(keyShipper, countCustomer) {
+		count = countCustomer.length;
+		return count;
+	}
+
+	db.orders.mapReduce(
+		mapFunction3,
+		reduceFunction3,
+		{ out: "map_reduce3"}
+	)
+
+	db.map_reduce3.find()
+
+
+--4. Find the average freight amount charged by each shipper. 
+	var mapFunction4 = function(){
+		emit(this.Shipper.CompanyName, this.Freight);
+	}
+	
+	-- get count and total freight for each shipper. use finalize to do an average at the end
+	var reduceFunction4 = function(keyShipperName, valuesFreight){
+		totalFreight = {count:0, freightAmount: 0};
+		totalFreight.count = valuesFreight.length;
+
+		for (var idx = 0; idx < valuesFreight.length; idx++){
+			totalFreight.freightAmount += valuesFreight[idx];
+		}
+		return totalFreight;
+	}
+	
+	-- check if the mapReduce works correctly
+	db.orders.mapReduce(
+		mapFunction4,
+		reduceFunction4,
+		{out: "map_reduce4"}
+	)
+
+	-- check to see if i was gathering the values correctly
+	db.map_reduce4.find()
+
+	-- finalize by adding the avg value
+	var finalizeFunction1 = function (keyShipperName, totalFreight){
+		totalFreight.avg = totalFreight.freightAmount/totalFreight.count;
+		return totalFreight;
+	}
+
+	db.orders.mapReduce(
+		mapFunction4,
+		reduceFunction4,
+		{
+			out: "map_reduce4",
+			finalize: finalizeFunction1
+		}
+	)
+
+-- 5. I submitted the course evalutation in Chitester. Thank you for the fantastic semester!
+	This was an incredibly valuable course and I appreciate the time that you put into
+	giving feedback and encouragement for the assignments!
+
+
+
+
+
+

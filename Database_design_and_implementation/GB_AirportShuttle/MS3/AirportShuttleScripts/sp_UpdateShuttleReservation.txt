@@ -1,0 +1,153 @@
+IF EXISTS(SELECT * FROM INFORMATION_SCHEMA.ROUTINES WHERE SPECIFIC_NAME = 'sp_UpdateShuttleReservation')
+	DROP PROCEDURE sp_UpdateShuttleReservation;
+GO
+
+CREATE PROCEDURE sp_UpdateShuttleReservation
+	
+	@ShuttleReservationID		smallint,
+	@NumSeatsRequested			smallint = NULL,
+	@PickUpTime					smalldatetime = NULL,
+	@ShuttleReservationStatus	varchar(4)  = NULL
+
+AS 
+BEGIN
+
+	DECLARE @ShuttleID			smallint
+	DECLARE @ErrMsg				varchar(max)
+	DECLARE @RemainingSeats		smallint = 0
+	DECLARE @PreReservation		smalldatetime
+	DECLARE @PostReservation	smalldatetime
+	DECLARE @OldPickUpTime		smalldatetime
+
+	DECLARE @NumSeatISNULL		bit = 0
+	DECLARE @PickUpTimeISNULL	bit = 0
+	DECLARE @SRStatusISNULL		bit = 0
+
+	-- Create default values to check against if anything is null
+	IF ISNULL(@NumSeatsRequested, 0) = 0
+		BEGIN
+			SET @NumSeatISNULL = 1
+		END
+
+	IF ISNULL(CAST(@PickUpTime as varchar),'NULL') = 'NULL'
+		BEGIN
+			SET @PickUpTimeISNULL = 1
+		END
+
+	IF ISNULL(@ShuttleReservationStatus, 'NULL') = 'NULL'
+		BEGIN
+			SET @ShuttleReservationStatus = 'NULL'
+			SET @SRStatusISNULL = 1
+		END
+
+
+	-- check that the status is within the list of accepted values
+	IF @ShuttleReservationStatus NOT IN ('R','N','X','C','NULL')
+		BEGIN
+			SET @ErrMsg = N'Sorry "'+ @ShuttleReservationStatus +'" is not a valid option. No changes made'
+			RAISERROR(@ErrMsg, 10,1, @ShuttleReservationStatus)
+			RETURN -1
+		END
+
+	-- check that the number of seats is not too much for that that
+	-- need to get the shuttleID first using the srid
+	
+	SELECT @ShuttleID = ShuttleID, @OldPickUpTime = PickUpTime
+		FROM ShuttleTrip st JOIN ShuttleReservation sr ON (st.ShuttleReservationID = sr.ShuttleReservationID)
+		WHERE st.ShuttleReservationID = @ShuttleReservationID
+
+	SET @RemainingSeats = (SELECT dbo.CheckRemainingSeats (CAST(@OldPickUpTime as varchar), @ShuttleID))
+	
+	IF @NumSeatsRequested > @RemainingSeats
+		BEGIN
+			SET @ErrMsg = N'Sorry the shuttle does not have the capacity to add more passengers. Please contact the hotel for more information'
+			RAISERROR(@ErrMsg, 10, 1, @NumSeatsRequested)
+			RETURN -1
+		END
+
+	-- Logical statements for the values
+	--PRINT'NumSeat is null'
+	--PRINT CAST(@NumSeatISNULL as varchar)
+
+	--PRINT'pick up time is null'
+	--PRINT CAST(@PickUpTimeISNULL as varchar)
+
+	--PRINT'status is null'
+	--PRINT CAST(@SRStatusISNULL as varchar)
+
+	--PRINT'Num seats'
+	--PRINT CAST(@NumSeatsRequested as varchar)
+
+	--PRINT'PickUpTime'
+	--PRINT CAST(@PickUpTime as varchar)
+
+	--PRINT'Shuttle res status'
+	--PRINT @ShuttleReservationStatus
+
+	-- IF all values are given
+	IF @NumSeatISNULL = 0 AND @PickUpTimeISNULL = 0 AND @SRStatusISNULL = 0
+		BEGIN
+			UPDATE ShuttleReservation
+			SET NumSeatsRequested = @NumSeatsRequested, PickUpTime = @PickUpTime, 
+				ShuttleReservationStatus = @ShuttleReservationStatus
+			WHERE ShuttleReservationID = @ShuttleReservationID
+		END
+	-- if all but Num seats is given
+	ELSE IF @NumSeatISNULL = 1 AND @PickUpTimeISNULL = 0 AND @SRStatusISNULL = 0
+		BEGIN
+			UPDATE ShuttleReservation
+			SET NumSeatsRequested = NumSeatsRequested, PickUpTime = @PickUpTime, 
+				ShuttleReservationStatus = @ShuttleReservationStatus
+			WHERE ShuttleReservationID = @ShuttleReservationID
+		END
+
+	-- if all but time is given
+	ELSE IF @NumSeatISNULL = 0 AND @PickUpTimeISNULL = 1 AND @SRStatusISNULL = 0
+		BEGIN
+			UPDATE ShuttleReservation
+			SET NumSeatsRequested = @NumSeatsRequested, PickUpTime = PickUpTime, 
+				ShuttleReservationStatus = @ShuttleReservationStatus
+			WHERE ShuttleReservationID = @ShuttleReservationID
+		END
+	-- if all but status is given
+	ELSE IF @NumSeatISNULL = 0 AND @PickUpTimeISNULL = 0 AND @SRStatusISNULL = 1
+		BEGIN
+		--PRINT ' made it into just status'
+			UPDATE ShuttleReservation
+			SET NumSeatsRequested = @NumSeatsRequested, PickUpTime = @PickUpTime, 
+				ShuttleReservationStatus = ShuttleReservationStatus
+			WHERE ShuttleReservationID = @ShuttleReservationID
+		END
+	-- if just seat
+	ELSE IF @NumSeatISNULL = 0 AND @PickUpTimeISNULL = 1 AND @SRStatusISNULL = 1
+		BEGIN
+			--PRINT'Made it into just seats'
+			UPDATE ShuttleReservation
+			SET NumSeatsRequested = @NumSeatsRequested, PickUpTime = PickUpTime, 
+				ShuttleReservationStatus = ShuttleReservationStatus
+			WHERE ShuttleReservationID = @ShuttleReservationID
+		END
+	-- just time
+	ELSE IF @NumSeatISNULL = 1 AND @PickUpTimeISNULL = 0 AND @SRStatusISNULL = 1
+		BEGIN
+			UPDATE ShuttleReservation
+			SET NumSeatsRequested = NumSeatsRequested, PickUpTime = @PickUpTime, 
+				ShuttleReservationStatus = ShuttleReservationStatus
+			WHERE ShuttleReservationID = @ShuttleReservationID
+		END
+	-- just status
+	ELSE IF @NumSeatISNULL = 1 AND @PickUpTimeISNULL = 1 AND @SRStatusISNULL = 0
+		BEGIN
+			UPDATE ShuttleReservation
+			SET NumSeatsRequested = NumSeatsRequested, PickUpTime = PickUpTime, 
+				ShuttleReservationStatus = @ShuttleReservationStatus
+			WHERE ShuttleReservationID = @ShuttleReservationID
+		END
+
+	-- none given
+	ELSE
+		BEGIN
+			PRINT'Nothing was changed'
+		END
+END -- procedure
+GO

@@ -1,0 +1,102 @@
+IF EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID('dbo.TodaysPassengerList') AND type in (N'FN', N'IF',N'TF',N'FS',N'FT'))
+DROP FUNCTION dbo.TodaysPassengerList
+
+GO
+
+CREATE FUNCTION dbo.TodaysPassengerList (@TodaysDate varchar(max), @ShuttleID smallint)
+RETURNS	@PassengerListTable TABLE(PassengerList varchar(max))
+
+AS 
+BEGIN
+	DECLARE @PassengerList varchar(max)
+	-- shuttleID and the date
+	DECLARE @PickUpTime		smalldatetime
+
+	--Passenger info and airport to be cursored through
+	DECLARE @PassFirst			varchar(20)
+	DECLARE @PassLast			varchar(20)
+	DECLARE @PassPhone			varchar(20)
+	DECLARE @NumSeatsRequested	smallint
+	DECLARE @TotalGuests		smallint = 0
+	DECLARE @AirportName		varchar(30)
+	DECLARE @IsDate				smallint
+
+	SET @IsDate = ISDATE(@TodaysDate)
+-- Check if Todays date is a real date if not return it is not a date
+	IF @IsDate = 0
+		BEGIN
+			SET @PassengerList = 'Sorry this is not a valid date. Please try again '
+			INSERT INTO @PassengerListTable
+				VALUES(@PassengerList)
+			RETURN
+		END
+-- Check if the Shuttle ID is Null and return a message if true
+	IF (SELECT COUNT(*) FROM Shuttle WHERE @ShuttleID = ShuttleID) = 0
+		BEGIN
+			SET @PassengerList = 'Sorry this is not a valid ShuttleID. Please try again'
+			INSERT INTO @PassengerListTable
+				VALUES(@PassengerList)
+			RETURN
+		END
+		
+	-- shuttle and date
+	SET @PassengerList = 'ShuttleID: ' + CAST(@ShuttleID as varchar) + ' for ' 
+	+ CAST(CAST(@TodaysDate as date) as varchar) + CHAR(13)
+
+		-- cursor through all the passengers for this shuttle on this date
+
+	-- Declare Cursor
+	DECLARE PassengerCursor Cursor FOR
+		SELECT
+			PickUpTime,
+			PassFirst,
+			PassLast,
+			PassPhone,
+			NumSeatsRequested,
+			AirportName
+			FROM Passenger p
+				INNER JOIN ShuttleReservation sr ON (sr.PassID = p.PassID)
+				INNER JOIN ShuttleTrip st ON (st.ShuttleReservationID = sr.ShuttleReservationID)
+				INNER JOIN Airport a ON (a.AirportID = st.AirportID)
+			WHERE st.ShuttleID = @ShuttleID AND CAST(PickUpTime as date) = CONVERT(date, @TodaysDate)
+		
+	OPEN PassengerCursor
+
+	FETCH NEXT FROM PassengerCursor
+	INTO @PickUpTime, @PassFirst, @PassLast, @PassPhone,
+	@NumSeatsRequested, @AirportName
+
+	WHILE @@FETCH_STATUS = 0
+
+		BEGIN
+
+			SET @TotalGuests += @NumSeatsRequested
+
+			SET @PassengerList += CHAR(13) + 'Requested pick up time: ' + CAST(@PickUpTime as varchar)
+			+ CHAR(13) + 'at ' + @AirportName + CHAR(13)
+			+ 'Name: ' + @PassFirst + ' ' + @PassLast + CHAR(13)
+			+ 'Phone: ' + @PassPhone + CHAR(13)
+			+ CAST((@NumSeatsRequested - 1) as varchar) + ' additional guests' + CHAR(13)
+
+
+		-- Get Next Passenger
+		FETCH NEXT FROM PassengerCursor
+		INTO @PickUpTime, @PassFirst, @PassLast, @PassPhone,
+		@NumSeatsRequested, @AirportName
+
+
+	END -- CURSOR
+
+	CLOSE PassengerCursor
+	DEALLOCATE PassengerCursor
+
+
+	SET @PassengerList += CHAR(13)
+	+ 'Expected total passengers: ' + CAST(@TotalGuests as varchar)	
+
+	INSERT INTO @PassengerListTable
+		VALUES(@PassengerList)
+
+	RETURN
+	END -- Function
+GO

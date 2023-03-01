@@ -1,0 +1,261 @@
+-- Creation script for Project
+-- Graeme Beatie
+-- 3/19/2022
+
+USE Master
+
+IF EXISTS (SELECT * FROM sysdatabases WHERE name='BEATIE_AIRPORT_SHUTTLE')
+DROP DATABASE BEATIE_AIRPORT_SHUTTLE
+
+GO
+
+--Command that gets rid of the "db already in use" error
+--USE master;
+--GO
+--ALTER DATABASE BEATIE_AIRPORT_SHUTTLE SET SINGLE_USER WITH ROLLBACK IMMEDIATE;
+--GO
+
+--DROP DATABASE BEATIE_AIRPORT_SHUTTLE
+
+--GO
+
+CREATE DATABASE BEATIE_AIRPORT_SHUTTLE
+
+ON PRIMARY 
+
+(
+NAME = 'BEATIE_AIRPORT_SHUTTLE',
+FILENAME ='C:\Program Files\Microsoft SQL Server\MSSQL15.SQLEXPRESS\MSSQL\DATA\BEATIE_AIRPORT_SHUTTLE.mdf',
+SIZE = 4 MB, 
+MAXSIZE = 4 MB,
+FILEGROWTH = 500 KB
+)
+
+LOG ON
+
+(
+NAME = 'BEATIE_AIRPORT_SHUTTLE_Log',
+FILENAME ='C:\Program Files\Microsoft SQL Server\MSSQL15.SQLEXPRESS\MSSQL\DATA\BEATIE_AIRPORT_SHUTTLE.ldf',
+SIZE = 4 MB, 
+MAXSIZE = 4 MB,
+FILEGROWTH = 500 KB
+)
+GO
+
+USE BEATIE_AIRPORT_SHUTTLE
+
+
+CREATE TABLE ShuttleStatus (
+   ShuttleStatusID				smallint		NOT NULL	IDENTITY,
+   ShuttleStatusDescription		varchar(200)	NOT NULL
+)
+
+CREATE TABLE Shuttle (
+   ShuttleID					smallint		NOT NULL	 IDENTITY (4500,10),
+   ShuttleCapacity				smallint		NOT NULL,
+   ShuttleVin					varchar(17)		NOT NULL,
+   ShuttleLicensePlateNum		varchar(7)		NOT NULL,
+   ShuttleStatusID				smallint		NOT NULL,
+   ShuttleComment				varchar(200)	NULL
+)
+
+CREATE TABLE Driver (
+   DriverID						smallint		NOT NULL	IDENTITY (3500,10),
+   DriverFirst					varchar(30)		NOT NULL,
+   DriverLast					varchar(30)		NOT NULL,
+   DriverAddress1				varchar(30)		NOT NULL,
+   DriverAddress2				varchar(10)		NULL,
+   DriverCity					varchar(20)		NOT NULL,
+   DriverState					char(2)			NULL,
+   DriverCountry				varchar(20)		NOT NULL,
+   DriverPostalCode				char(10)		NOT NULL,
+   DriversLicenseID				smallint		NOT NULL
+)
+
+CREATE TABLE Airport (
+   AirportID					smallint		NOT NULL	IDENTITY,
+   AirportName					varchar(30)		NOT NULL,
+   AirportAddress				varchar(30)		NOT NULL,
+   AirportCity					varchar(20)		NOT NULL,
+   AirportState					char(2)			NULL,
+   AirportCountry				varchar(20)		NOT NULL,
+   AirportPostalCode			char(10)		NOT NULL
+)
+
+CREATE TABLE ShuttleTrip (
+   ShuttleTripID				int				NOT NULL	IDENTITY (10000,1),
+   ShuttleReservationID			smallint		NOT NULL,
+   AirportID					smallint		NOT NULL,
+   DriverID						smallint		NOT NULL,
+   ShuttleID					smallint		NOT NULL,
+   HotelID						smallint		NOT NULL, -- will enforce with distributed transactions?
+   ArrivalTime					smalldatetime	NOT NULL
+)
+
+
+CREATE TABLE ShuttleReservation (
+   ShuttleReservationID			smallint		NOT NULL	IDENTITY(7000,1),
+   NumSeatsRequested			smallint		NOT NULL,
+   PickUpTime					smalldatetime	NOT NULL,
+   ShuttleReservationStatus		smallint		NOT NULL,
+   PassID						smallint		NOT NULL -- will add trigger for crossing the tables
+)
+
+CREATE TABLE DriversLicense (
+   DriversLicenseID				smallint		NOT NULL	IDENTITY(5500,10),
+   DriverLicenseNum				varchar(8)		NOT NULL,
+   DriverLicenseState			char(2)			NOT NULL,
+   DriverLicenseExpiration		smalldatetime	NOT NULL
+)
+
+CREATE TABLE  PASSENGER  (
+   PassID						smallint		NOT NULL	IDENTITY,
+   PassFirst					varchar(20)		NOT NULL,
+   PassLast						varchar(20)		NOT NULL,
+   PassAddress1					varchar(30)		NOT NULL,
+   PassAddress2					varchar(10)		NULL,
+   PassCity						varchar(20)		NOT NULL,
+   PassState					char(2)			NULL,
+   PassPostalCode				char(10)		NOT NULL,
+   PassCountry					varchar(20)		NOT NULL,
+   PassPhone					varchar(20)		NOT NULL,
+   PassEmail					varchar(30)		NULL,
+   PassComments					varchar(200)	NULL
+)
+
+--CREATE TABLE HOTEL  (
+--   HotelID  smallint,
+--   HotelName  varchar(30),
+--   HotelAddress  varchar(30),
+--   HotelCity  varchar(20),
+--   HotelState  char(2),
+--   HotelCountry  varchar(20),
+--   HotelPostalCode  char(10),
+--   HotelStarRating  char(1),
+--   HotelPictureLink  varchar(100),
+--   TaxLocationID  smallint,
+--)
+
+
+--CREATE TABLE GUEST  (
+--   GuestID  smallint,
+--   GuestFirst  varchar(20),
+--   GuestLast  varchar(20),
+--   GuestAddress1  Type,
+--   GuestAddress2  varchar(10),
+--   GuestCity  varchar(20),
+--   GuestState  char(2),
+--   GuestPostalCode  char(10),
+--   GuestCountry  varchar(20),
+--   GuestPhone  varchar(20),
+--   GuestEmail  varchar(30),
+--   GuestComments  varchar(200),
+--)
+
+GO
+
+-- Checked that this tables get made
+-- Now to make PKs and FKs
+
+ALTER TABLE ShuttleReservation
+	ADD CONSTRAINT PK_ShuttleReservationID
+	PRIMARY KEY (ShuttleReservationID)
+
+ALTER TABLE ShuttleTrip
+	ADD CONSTRAINT PK_ShuttleTripID
+	PRIMARY KEY (ShuttleTripID)
+
+ALTER TABLE Driver
+	ADD CONSTRAINT PK_DriverID
+	PRIMARY KEY (DriverID)
+
+ALTER TABLE Airport
+	ADD CONSTRAINT PK_AirportID
+	PRIMARY KEY (AirportID)
+
+ALTER TABLE Shuttle
+	ADD CONSTRAINT PK_ShuttleID
+	PRIMARY KEY (ShuttleID)
+
+ALTER TABLE DriversLicense
+	ADD CONSTRAINT PK_DriversLicenseID
+	PRIMARY KEY (DriversLicenseID)
+
+ALTER TABLE ShuttleStatus
+	ADD CONSTRAINT PK_ShuttleStatusID
+	PRIMARY KEY (ShuttleStatusID)
+
+ALTER TABLE Passenger
+	ADD CONSTRAINT PK_PassID
+	PRIMARY KEY (PassID)
+
+GO
+--Check pks, yep it compiles
+--now fks
+
+ALTER TABLE ShuttleTrip
+	ADD 
+	
+	CONSTRAINT FK_ShuttleReservationID
+	FOREIGN KEY (ShuttleReservationID) REFERENCES ShuttleReservation (ShuttleReservationID)
+	ON UPDATE CASCADE
+	ON DELETE CASCADE,
+
+	CONSTRAINT FK_AirportID
+	FOREIGN KEY (AirportID) REFERENCES Airport (AirportID)
+	ON UPDATE CASCADE
+	ON DELETE CASCADE,
+
+	CONSTRAINT FK_DriverID
+	FOREIGN KEY (DriverID) REFERENCES Driver (DriverID)
+	ON UPDATE CASCADE
+	ON DELETE CASCADE,
+
+	CONSTRAINT FK_ShuttleID
+	FOREIGN KEY (ShuttleID) REFERENCES Shuttle (ShuttleID)
+	ON UPDATE CASCADE
+	ON DELETE CASCADE
+
+ALTER TABLE Driver
+	ADD CONSTRAINT FK_DriversLicenseID
+	FOREIGN KEY (DriversLicenseID) REFERENCES DriversLicense (DriversLicenseID)
+	ON UPDATE CASCADE
+	ON DELETE CASCADE
+
+ALTER TABLE Shuttle
+	ADD CONSTRAINT FK_ShuttleStatusID
+	FOREIGN KEY (ShuttleStatusID) REFERENCES ShuttleStatus (ShuttleStatusID)
+	ON UPDATE CASCADE
+	ON DELETE CASCADE
+
+ALTER TABLE ShuttleReservation
+	ADD CONSTRAINT FK_PassID
+	FOREIGN KEY (PassID) REFERENCES Passenger (PassID)
+	ON UPDATE CASCADE
+	ON DELETE CASCADE
+GO
+-- checked if it runs
+-- now add the defaults and checks
+ALTER TABLE Shuttle
+	ADD 
+	CONSTRAINT CK_CheckForCorrectStatus
+	CHECK (ShuttleStatusID IN ('A','O','N')),
+
+	CONSTRAINT DK_DefaultShuttleStatusID1
+	DEFAULT 1 FOR ShuttleStatusID,
+
+	CONSTRAINT DK_DefaultShuttleCommentNoComment
+	DEFAULT 'No comment' FOR ShuttleComment,
+
+	CONSTRAINT CK_MaxCapacityLessThan20
+	CHECK (ShuttleCapacity <= 20)
+
+ALTER TABLE ShuttleReservation
+	ADD CONSTRAINT CK_CheckForCorrectSRStatus
+	CHECK (ShuttleReservationStatus IN ('R','N','X','C'))
+
+	
+GO
+
+-- All compiles can add sprocs, udfs, and triggers passed here
+

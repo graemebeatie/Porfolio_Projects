@@ -1,0 +1,24 @@
+IF EXISTS(SELECT * FROM INFORMATION_SCHEMA.ROUTINES WHERE SPECIFIC_NAME = 'sp_CreateShuttleReservation')
+	DROP PROCEDURE sp_CreateShuttleReservation
+GO
+
+CREATE PROCEDURE sp_CreateShuttleReservation
+	@NumSeatsRequested			smallint,
+	@PickUpTime					smalldatetime,
+	@ShuttleReservationStatus	char(1),
+	@PassID						smallint,
+	@ShuttleReservationID		smallint OUTPUT
+
+	AS
+	BEGIN
+		INSERT INTO ShuttleReservation
+			VALUES(
+			@NumSeatsRequested,
+			@PickUpTime,
+			@ShuttleReservationStatus,
+			@PassID
+			)
+
+		SELECT @ShuttleReservationID = @@IDENTITY
+	END
+GO
