@@ -1,0 +1,124 @@
+## Bagging and Random Forests
+
+```{r}
+set.seed(1)
+library(MASS)
+data(Boston)
+
+train <- sample(1:nrow(Boston), nrow(Boston) / 2)
+```
+
+
+
+Here we apply bagging and random forests to the `Boston` data, using the `randomForest` package in `R`. The exact results obtained in this section may depend on the version of `R` and the version of the `randomForest` package installed on your computer.
+Recall that bagging is simply a special case of a random forest with
+$m=p$. Therefore, the
+`randomForest()` function can be used to perform both random forests and bagging.
+We perform bagging as follows:
+
+```{r chunk19}
+library(randomForest)
+set.seed(1)
+bag.boston <- randomForest(medv ~ ., data = Boston,
+    subset = train, mtry = 12, importance = TRUE)
+bag.boston
+```
+
+The argument `mtry = 12` indicates that all $12$ predictors should be considered for each split of the tree---in other words, that bagging should be done.
+How well does this bagged model perform on the test set?
+
+```{r chunk20}
+boston.test <- Boston[-train, "medv"]
+yhat.bag <- predict(bag.boston, newdata = Boston[-train, ])
+plot(yhat.bag, boston.test)
+abline(0, 1)
+mean((yhat.bag - boston.test)^2)
+```
+
+The test set MSE associated with the bagged regression tree is $23.42$.
+We could change the number of trees grown by `randomForest()` using the `ntree` argument:
+
+```{r chunk21}
+bag.boston <- randomForest(medv ~ ., data = Boston,
+    subset = train, mtry = 12, ntree = 25)
+yhat.bag <- predict(bag.boston, newdata = Boston[-train, ])
+mean((yhat.bag - boston.test)^2)
+```
+
+
+Growing a random forest proceeds in exactly the same way, except that we use a smaller value of the `mtry` argument. By default, `randomForest()` uses $p/3$ variables when building a random forest of regression trees, and $\sqrt{p}$ variables when building a random forest of classification trees. Here we use `mtry = 6`.
+
+```{r chunk22}
+set.seed(1)
+rf.boston <- randomForest(medv ~ ., data = Boston,
+    subset = train, mtry = 6, importance = TRUE)
+yhat.rf <- predict(rf.boston, newdata = Boston[-train, ])
+mean((yhat.rf - boston.test)^2)
+```
+
+The test set MSE is $20.07$; this indicates that random forests yielded an improvement over bagging in this case.
+
+Using the `importance()` function, we can view the importance of each variable.
+
+```{r chunk23}
+importance(rf.boston)
+```
+
+Two measures of variable importance are reported. The first is based upon the mean decrease of accuracy in predictions on the out of bag samples when a given variable is permuted. The second is a measure of the total decrease in node impurity that results from splits over that variable, averaged over all trees (this was plotted in Figure 8.9). In the case of regression trees, the node impurity is measured by the training RSS, and for classification trees by the deviance. Plots of these importance measures can be produced using the `varImpPlot()` function.
+
+```{r chunk24}
+varImpPlot(rf.boston)
+```
+
+
+
+The results indicate that across all of the trees considered in the random forest, the wealth of the community (`lstat`) and the house size (`rm`) are by far the two most important variables.
+
+
+
+
+## Boosting
+
+
+Here we use the `gbm` package, and within it the `gbm()` function, to fit boosted regression trees to the `Boston` data set. We run `gbm()` with the option `distribution = "gaussian"` since this is a regression problem; if it were a binary classification problem, we would use `distribution = "bernoulli"`.
+The argument `n.trees = 5000` indicates that we want $5000$ trees, and the option `interaction.depth = 4` limits the depth of each tree.
+
+```{r chunk25}
+library(gbm)
+set.seed(1)
+boost.boston <- gbm(medv ~ ., data = Boston[train, ],
+    distribution = "gaussian", n.trees = 5000,
+    interaction.depth = 4)
+```
+
+The `summary()` function produces a relative influence plot and also outputs the relative influence statistics.
+
+```{r chunk26}
+summary(boost.boston)
+```
+
+intuitively, median house prices increase with rm and decrease with 
+lstat (remember that higher lstat represents lower socio-economic status).
+
+We now use the boosted model to predict `medv` on the test set:
+
+```{r chunk28}
+yhat.boost <- predict(boost.boston,
+    newdata = Boston[-train, ], n.trees = 5000)
+mean((yhat.boost - boston.test)^2)
+```
+
+The test MSE obtained is $18.39$: this is superior to the test MSE of random forests and bagging. If we want to, we can perform boosting with a different value of the shrinkage parameter $\lambda$ in (8.10). The default value is $0.001$, but this is easily modified.
+Here we take $\lambda=0.2$.
+
+```{r chunk29}
+boost.boston <- gbm(medv ~ ., data = Boston[train, ],
+    distribution = "gaussian", n.trees = 5000,
+    interaction.depth = 4, shrinkage = 0.2, verbose = F)
+yhat.boost <- predict(boost.boston,
+    newdata = Boston[-train, ], n.trees = 5000)
+mean((yhat.boost - boston.test)^2)
+```
+
+In this case, using $\lambda=0.2$ leads to a lower test MSE than $\lambda=0.001$.
+
